@@ -1,18 +1,31 @@
 package com.example.a52external;
 
+import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.io.FileDescriptor;
+import java.io.IOException;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
     Button btnSettings;
     private TextView resultField;
     private Button btnPoint;
+    private static final int READ_REQUEST_CODE = 10;
+    private ImageView background;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,13 +36,39 @@ public class MainActivity extends AppCompatActivity {
         btnSettings.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this,SettingClass.class);
-                startActivity(intent);
-
+                performFileSearch();
             }
         });
     }
 
+
+    private void performFileSearch() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        intent.setType("image/*");
+
+        startActivityForResult(intent, READ_REQUEST_CODE);
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                Uri uri = data.getData();
+                try (ParcelFileDescriptor parcelFileDescriptor =
+                             getContentResolver().openFileDescriptor(Objects.requireNonNull(uri), "r")) {
+                    FileDescriptor fileDescriptor = Objects.requireNonNull(parcelFileDescriptor).getFileDescriptor();
+                    Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+                    background.setImageBitmap(image);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     public void numPress(View view) {
         int id = view.getId();
@@ -72,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        background = findViewById(R.id.background);
         resultField  = findViewById(R.id.resultField);
         btnPoint = findViewById(R.id.btnPoint);
 
